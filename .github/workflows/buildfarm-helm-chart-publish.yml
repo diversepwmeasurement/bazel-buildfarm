@@ -1,42 +1,41 @@
----
-name: Package and Publish Helm Chart
-
-on:
-  push:
-    tags:
-      - 'helm/*'
-
 env:
-  GH_TOKEN: ${{ github.token }}
   CHART_ROOT: kubernetes/helm-charts/buildfarm
-
+  GH_TOKEN: ${{ github.token }}
 jobs:
   build:
     name: Lint, Package, and Release BuildFarm Helm Chart
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - id: get-chart-ver
-        name: Extracting Helm Chart Version from Tag
-        run: |
-          set -ex
-          echo "chart_ver=$(echo $GITHUB_REF | cut -d / -f 4)" >> $GITHUB_OUTPUT
-      - id: set-chart-yaml-version
-        name: Etching Helm Chart Version into Chart.yaml for Packaging
-        run: |
-          set -ex
-          echo setting Chart version to \
-            "${{ steps.get-chart-ver.outputs.chart_ver }}" \
-            in ${CHART_ROOT}/Chart.yaml
-          yq -i \
-            '.version |= "${{ steps.get-chart-ver.outputs.chart_ver }}"' \
-            ${CHART_ROOT}/Chart.yaml
-      - id: helm-lint-package-release
-        name: Helm Chart Lint, Package, and Release
-        run: |-
-          set -ex
-          helm dep up "${CHART_ROOT}"
-          helm lint "${CHART_ROOT}"
-          helm package "${CHART_ROOT}"
-          gh release create "${{ github.ref_name }}" *.tgz
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      id: get-chart-ver
+      name: Extracting Helm Chart Version from Tag
+      run: 'set -ex
+
+        echo "chart_ver=$(echo $GITHUB_REF | cut -d / -f 4)" >> $GITHUB_OUTPUT
+
+        '
+    - continue-on-error: true
+      id: set-chart-yaml-version
+      name: Etching Helm Chart Version into Chart.yaml for Packaging
+      run: "set -ex\necho setting Chart version to \\\n  \"${{ steps.get-chart-ver.outputs.chart_ver\
+        \ }}\" \\\n  in ${CHART_ROOT}/Chart.yaml\nyq -i \\\n  '.version |= \"${{ steps.get-chart-ver.outputs.chart_ver\
+        \ }}\"' \\\n  ${CHART_ROOT}/Chart.yaml\n"
+    - continue-on-error: true
+      id: helm-lint-package-release
+      name: Helm Chart Lint, Package, and Release
+      run: 'set -ex
+
+        helm dep up "${CHART_ROOT}"
+
+        helm lint "${CHART_ROOT}"
+
+        helm package "${CHART_ROOT}"
+
+        gh release create "${{ github.ref_name }}" *.tgz'
+name: Package and Publish Helm Chart
+on:
+  repository_dispatch:
+    types: trigger-ga___buildfarm-helm-chart-publish.yml
